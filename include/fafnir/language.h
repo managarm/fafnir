@@ -4,6 +4,10 @@
 enum {
 	FNR_OP_NULL,
 
+	FNR_OP_DROP,
+
+	FNR_OP_DUP,
+
 	// Pushes a binding constant on the opstack.
 	// Immediate operands:
 	// - (uint) Index of binding constant.
