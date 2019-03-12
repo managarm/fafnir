@@ -20,12 +20,18 @@ namespace code {
 		size_t index;
 	};
 
+	struct s_define { };
+
+	struct s_value {
+		size_t index;
+	};
+
 	struct literal {
 		int64_t value;
 	};
 
-	struct bitwise_and { };
 	struct add { };
+	struct bitwise_and { };
 
 	struct intrin {
 		const char *name;
@@ -66,19 +72,28 @@ struct code_traits<binding> {
 };
 
 template<>
-struct code_traits<literal> {
+struct code_traits<s_define> {
 	template<typename Iterator>
-	static void emit(Iterator &it, const literal &c) {
-		*(it++) = FNR_OP_CONST;
-		*(it++) = c.value;
+	static void emit(Iterator &it, const s_define &c) {
+		*(it++) = FNR_OP_S_DEFINE;
 	}
 };
 
 template<>
-struct code_traits<bitwise_and> {
+struct code_traits<s_value> {
 	template<typename Iterator>
-	static void emit(Iterator &it, const bitwise_and &) {
-		*(it++) = FNR_OP_AND;
+	static void emit(Iterator &it, const s_value &c) {
+		*(it++) = FNR_OP_S_VALUE;
+		*(it++) = c.index;
+	}
+};
+
+template<>
+struct code_traits<literal> {
+	template<typename Iterator>
+	static void emit(Iterator &it, const literal &c) {
+		*(it++) = FNR_OP_LITERAL;
+		*(it++) = c.value;
 	}
 };
 
@@ -87,6 +102,14 @@ struct code_traits<add> {
 	template<typename Iterator>
 	static void emit(Iterator &it, const add &) {
 		*(it++) = FNR_OP_ADD;
+	}
+};
+
+template<>
+struct code_traits<bitwise_and> {
+	template<typename Iterator>
+	static void emit(Iterator &it, const bitwise_and &) {
+		*(it++) = FNR_OP_BITWISE_AND;
 	}
 };
 
