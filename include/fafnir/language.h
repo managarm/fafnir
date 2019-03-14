@@ -40,6 +40,14 @@ enum {
 	// - (uint) Index into the scope stack.
 	FNR_OP_S_VALUE,
 
+	FNR_OP_CHECK_IF,
+
+	FNR_OP_THEN,
+
+	FNR_OP_ELSE_THEN,
+
+	FNR_OP_END,
+
 	// Pushes an immediate constant on the opstack.
 	// Immediate operands:
 	// - (int) The constant.

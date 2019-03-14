@@ -26,6 +26,11 @@ namespace code {
 		size_t index;
 	};
 
+	struct check_if { };
+	struct then { };
+	struct else_then { };
+	struct end { };
+
 	struct literal {
 		int64_t value;
 	};
@@ -80,6 +85,38 @@ struct code_traits<s_define> {
 };
 
 template<>
+struct code_traits<check_if> {
+	template<typename Iterator>
+	static void emit(Iterator &it, const check_if &) {
+		*(it++) = FNR_OP_CHECK_IF;
+	}
+};
+
+template<>
+struct code_traits<then> {
+	template<typename Iterator>
+	static void emit(Iterator &it, const then &) {
+		*(it++) = FNR_OP_THEN;
+	}
+};
+
+template<>
+struct code_traits<else_then> {
+	template<typename Iterator>
+	static void emit(Iterator &it, const else_then &) {
+		*(it++) = FNR_OP_ELSE_THEN;
+	}
+};
+
+template<>
+struct code_traits<end> {
+	template<typename Iterator>
+	static void emit(Iterator &it, const end &) {
+		*(it++) = FNR_OP_END;
+	}
+};
+
+template<>
 struct code_traits<s_value> {
 	template<typename Iterator>
 	static void emit(Iterator &it, const s_value &c) {
@@ -119,7 +156,7 @@ struct code_traits<intrin> {
 	static void emit(Iterator &it, const intrin &c) {
 		*(it++) = FNR_OP_INTRIN;
 		*(it++) = c.num_args;
-//		*(it++) = c.num_retvals;
+		*(it++) = c.num_retvals;
 		auto s = c.name;
 		while(*s)
 			*(it++) = *(s++);
