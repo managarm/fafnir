@@ -66,10 +66,10 @@ namespace code {
 		size_t index;
 	};
 
-	struct s_define : expr_crtp<s_define> { };
+	struct scope_push : expr_crtp<scope_push> { };
 
-	struct s_value : expr_crtp<s_value> {
-		s_value(size_t index_)
+	struct scope_get : expr_crtp<scope_get> {
+		scope_get(size_t index_)
 		: index{index_} { }
 
 		size_t index;
@@ -139,9 +139,9 @@ struct code_traits<binding> {
 };
 
 template<>
-struct code_traits<s_define> {
+struct code_traits<scope_push> {
 	template<typename Iterator>
-	static void emit(Iterator &it, const s_define &c) {
+	static void emit(Iterator &it, const scope_push &c) {
 		*(it++) = FNR_OP_S_DEFINE;
 	}
 };
@@ -179,9 +179,9 @@ struct code_traits<end> {
 };
 
 template<>
-struct code_traits<s_value> {
+struct code_traits<scope_get> {
 	template<typename Iterator>
-	static void emit(Iterator &it, const s_value &c) {
+	static void emit(Iterator &it, const scope_get &c) {
 		*(it++) = FNR_OP_S_VALUE;
 		*(it++) = c.index;
 	}
