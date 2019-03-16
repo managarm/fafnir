@@ -9,36 +9,91 @@ namespace fnr {
 // Structs to represent instructions.
 // --------------------------------------------------------------------------------------
 
+template<typename C>
+struct expr_crtp;
+
+template<typename F, typename... Args>
+struct apply_expr : expr_crtp<apply_expr<F, Args...>> {
+	apply_expr(F fn_, Args... args_)
+	: fn{fn_}, args{args_...} { }
+
+	F fn;
+	std::tuple<Args...> args;
+};
+
+template<typename L, typename R>
+struct add_expr {
+	L lhs;
+	R rhs;
+};
+
+template<typename L, typename R>
+struct and_expr {
+	L lhs;
+	R rhs;
+};
+
+template<typename C>
+struct expr_crtp {
+	template<typename... Args>
+	apply_expr<C, Args...> operator() (Args... args) const {
+		return apply_expr<C, Args...>{*static_cast<const C *>(this), args...};
+	}
+
+	template<typename R>
+	add_expr<C, R> operator+ (R rhs) const {
+		return add_expr<C, R>{*static_cast<const C *>(this), rhs};
+	}
+
+	template<typename R>
+	and_expr<C, R> operator& (R rhs) const {
+		return and_expr<C, R>{*static_cast<const C *>(this), rhs};
+	}
+};
+
 namespace code {
-	struct drop { };
+	struct drop : expr_crtp<drop> {
+	};
 
-	struct dup {
+	struct dup : expr_crtp<dup> {
 		size_t index;
 	};
 
-	struct binding {
+	struct binding : expr_crtp<binding> {
+		binding(size_t index_)
+		: index{index_} { }
+
 		size_t index;
 	};
 
-	struct s_define { };
+	struct s_define : expr_crtp<s_define> { };
 
-	struct s_value {
+	struct s_value : expr_crtp<s_value> {
+		s_value(size_t index_)
+		: index{index_} { }
+
 		size_t index;
 	};
 
-	struct check_if { };
-	struct then { };
-	struct else_then { };
-	struct end { };
+	struct check_if : expr_crtp<check_if> { };
+	struct then : expr_crtp<then> { };
+	struct else_then : expr_crtp<else_then> { };
+	struct end : expr_crtp<end> { };
 
-	struct literal {
+	struct literal : expr_crtp<literal> {
+		literal(int64_t value_)
+		: value{value_} { }
+
 		int64_t value;
 	};
 
-	struct add { };
-	struct bitwise_and { };
+	struct add : expr_crtp<add> { };
+	struct bitwise_and : expr_crtp<bitwise_and> { };
 
-	struct intrin {
+	struct intrin : expr_crtp<intrin> {
+		intrin(const char *name_, int num_args_, int num_retvals_)
+		: name{name_}, num_args{num_args_}, num_retvals{num_retvals_} { }
+
 		const char *name;
 		int num_args;
 		int num_retvals;
@@ -49,6 +104,13 @@ using namespace code;
 
 template<typename T>
 struct code_traits;
+
+template <typename T, typename = void>
+struct is_code : std::false_type {};
+
+template <typename T>
+struct is_code<T, std::void_t<decltype(code_traits<T>::emit(std::declval<std::vector<char>::iterator>(), std::declval<const T &>))>>
+: std::true_type {};
 
 template<>
 struct code_traits<drop> {
@@ -173,6 +235,46 @@ void emit_to(Iterator it, const T &... cs) {
 	};
 	(void)seq;
 }
+
+template<typename F, typename... Args>
+struct code_traits<apply_expr<F, Args...>> {
+	template<typename Iterator>
+	static void emit(Iterator &it, const apply_expr<F, Args...> &c) {
+		_emit_tuple(it, c.args, std::index_sequence_for<Args...>{});
+		code_traits<F>::emit(it, c.fn);
+	}
+
+private:
+	template<typename Iterator, size_t... I>
+	static void _emit_tuple(Iterator &it, const std::tuple<Args...> &t,
+			std::index_sequence<I...>) {
+		// Same trick as in emit_to().
+		auto seq = {
+			(code_traits<Args>::emit(it, std::get<I>(t)), 0)...
+		};
+		(void)seq;
+	}
+};
+
+template<typename L, typename R>
+struct code_traits<add_expr<L, R>> {
+	template<typename Iterator>
+	static void emit(Iterator &it, const add_expr<L, R> &c) {
+		code_traits<L>::emit(it, c.lhs);
+		code_traits<R>::emit(it, c.rhs);
+		code_traits<add>::emit(it, add{});
+	}
+};
+
+template<typename L, typename R>
+struct code_traits<and_expr<L, R>> {
+	template<typename Iterator>
+	static void emit(Iterator &it, const and_expr<L, R> &c) {
+		code_traits<L>::emit(it, c.lhs);
+		code_traits<R>::emit(it, c.rhs);
+		code_traits<bitwise_and>::emit(it, bitwise_and{});
+	}
+};
 
 } // namespace fnr
 
